@@ -1,0 +1,8 @@
+mypy
+flake8
+black
+requests
+types-requests
+types-aiofiles
+aiofiles
+aiohttp
