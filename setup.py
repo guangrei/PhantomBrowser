@@ -12,7 +12,7 @@ requirements = ["types-aiofiles", "aiofiles", "aiohttp", "requests", "types-requ
 
 setup(
     name="phantombrowser",
-    version="v0.0.1",
+    version="v0.0.2",
     description="Typed Python wrapper for Phantomjs Cloud API",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -20,6 +20,7 @@ setup(
     author_email="myawn@pm.me",
     url="https://github.com/guangrei/PhantomBrowser",
     packages=["PhantomBrowser"],
+    package_data={"PhantomBrowser": ["py.typed"]},
     license="MIT",
     platforms="any",
     install_requires=requirements,
