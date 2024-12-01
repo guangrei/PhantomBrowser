@@ -36,7 +36,7 @@ jobs:
         
     - name: Type checking with mypy
       run: |
-        mypy --strict .
+        mypy --strict --exclude build .
 
     - name: Unit Testing
       run: |
