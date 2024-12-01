@@ -1,8 +1,10 @@
 mypy
-flake8
-black
+ruff
 requests
 types-requests
 types-aiofiles
 aiofiles
 aiohttp
+twine
+setuptools
+types-setuptools

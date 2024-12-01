@@ -17,9 +17,7 @@ class Browser:
             apikey = os.environ.get(
                 "PHANTOMJSCLOUD.COM_APIKEY", "a-demo-key-with-low-quota-per-ip-address"
             )
-        userAgent: str = (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Guangrei/2024.04.21 Chrome/124.0.0.0 Safari/537.36"
-        )
+        userAgent: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Guangrei/2024.04.21 Chrome/124.0.0.0 Safari/537.36"
         self.pageRequest: Dict[str, Any] = {}
         self.verify: bool = True
         self.endpoints: str = (

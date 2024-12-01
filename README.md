@@ -1,6 +1,10 @@
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff) 
 [![status workflow test](https://github.com/guangrei/PhantomBrowser/actions/workflows/python-app.yml/badge.svg)](https://github.com/guangrei/PhantomBrowser/actions) 
 [![status workflow build](https://github.com/guangrei/PhantomBrowser/actions/workflows/release_to_pypi.yml/badge.svg)](https://github.com/guangrei/PhantomBrowser/actions)
+
+[![Downloads](https://static.pepy.tech/badge/phantombrowser)](https://pepy.tech/project/phantombrowser)
+[![Downloads](https://static.pepy.tech/badge/phantombrowser/month)](https://pepy.tech/project/phantombrowser)
+[![Downloads](https://static.pepy.tech/badge/phantombrowser/week)](https://pepy.tech/project/phantombrowser)
 
 PhantomBrowser is typed Python wrapper for [phantomjscloud.com](https://phantomjscloud.com) api with optimize magic rendering and support asynchronous.
 

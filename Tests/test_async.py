@@ -4,7 +4,6 @@ from PhantomBrowser import AsyncBrowser
 
 
 class BrowserTest(unittest.IsolatedAsyncioTestCase):
-
     async def test_browser(self) -> None:
         browser = AsyncBrowser()
         await browser.get("https://example.com")
