@@ -3,6 +3,10 @@ from urllib.parse import urlencode
 import requests
 import json as jsonpy
 import os
+import re
+import multiprocessing
+from tqdm import tqdm
+from urllib.parse import urlparse, unquote
 from typing import Optional, Union, Dict, Any, List
 
 
@@ -17,7 +21,7 @@ class Browser:
             apikey = os.environ.get(
                 "PHANTOMJSCLOUD.COM_APIKEY", "a-demo-key-with-low-quota-per-ip-address"
             )
-        userAgent: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Guangrei/2024.04.21 Chrome/124.0.0.0 Safari/537.36"
+        userAgent: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Guangrei/2025.02.13 Chrome/124.0.0.0 Safari/537.36"
         self.pageRequest: Dict[str, Any] = {}
         self.verify: bool = True
         self.endpoints: str = (
@@ -31,7 +35,7 @@ class Browser:
         self.renderSettings: Dict[str, Any] = {}
         self.userAgent: str = userAgent
         self.cookies: List[str] = []
-        self._session: requests.Session = requests.Session()
+        self.session: requests.Session = requests.Session()
 
     def _magicRender(self, type: str) -> None:
         if type == "html":
@@ -62,7 +66,7 @@ class Browser:
         self.pageRequest["urlSettings"] = self.urlSettings
         self.pageRequest["renderSettings"] = self.renderSettings
         self.pageRequest["requestSettings"] = self.requestSettings
-        response: requests.Response = self._session.post(
+        response: requests.Response = self.session.post(
             self.endpoints, data=jsonpy.dumps(self.pageRequest), verify=self.verify
         )
         self.response = response.content
@@ -204,5 +208,90 @@ class Browser:
         else:
             return False
 
+    def download(
+        self,
+        url: str,
+        folder: Optional[str] = None,
+        filename: Optional[str] = None,
+        overwrite: bool = False,
+        progress: bool = False,
+        **kwargs: Any,
+    ) -> str:
+        if not folder:
+            folder = os.getcwd()
+        ua = {"headers": {"User-Agent": self.userAgent}}
+        kwargs.update(ua)
+
+        response = self.session.get(url, stream=True, **kwargs)
+        response.raise_for_status()
+
+        if not filename:
+            content_disposition = response.headers.get("content-disposition")
+            if content_disposition:
+                match = re.search(
+                    r'filename\*?=["\']?(?:UTF-8\'\')?([^"\']+)',
+                    content_disposition,
+                    re.IGNORECASE,
+                )
+                filename = unquote(match.group(1)) if match else None
+            else:
+                filename = None
+
+            if not filename:
+                filename = os.path.basename(urlparse(url).path) or "downloaded_file"
+
+        if not overwrite:
+            counter = 1
+            parts = filename.split(".")
+            if len(parts) > 2 and parts[-2].isalnum():
+                name = ".".join(parts[:-2])
+                ext = "." + ".".join(parts[-2:])
+            else:
+                name = ".".join(parts[:-1])
+                ext = "." + parts[-1]
+            name = re.sub(r"\(\d+\)$", "", name)
+            filename = f"{name}{ext}"
+            while os.path.exists(os.path.join(folder, filename)):
+                filename = f"{name}({counter}){ext}"
+                counter += 1
+
+        filepath = os.path.join(folder, filename)
+        total_size = int(response.headers.get("content-length", 0))
+        chunk_size = 1024  # 1 KB
+        if progress:
+            progress_bar = tqdm(
+                total=total_size,
+                unit="B",
+                unit_scale=True,
+                desc=filename,
+            )
+
+        with open(filepath, "wb") as file:
+            for chunk in response.iter_content(chunk_size=chunk_size):
+                file.write(chunk)
+                if progress:
+                    progress_bar.update(len(chunk))
+        if progress:
+            progress_bar.close()
+        return filepath
+
+    def downloader(
+        self, urls: List[str], folder: str = "Downloads", **kwargs: Any
+    ) -> None:
+        os.makedirs(folder, exist_ok=True)
+        kwargs.update(dict(progress=True, allow_redirects=True))
+        process = []
+        for url in urls:
+            kwargs["url"] = url
+            kwargs["folder"] = folder
+            p = multiprocessing.Process(target=self.download, kwargs=kwargs)
+            process.append(p)
+            p.start()
+        for p in process:
+            p.join()
+
     def close(self) -> None:
-        self._session.close()
+        self.session.close()
+
+    def __del__(self) -> None:
+        self.close()

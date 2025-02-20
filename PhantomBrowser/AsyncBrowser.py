@@ -1,9 +1,11 @@
 # -*-coding:utf8;-*-
-from urllib.parse import urlencode
 import aiohttp
 import aiofiles
 import json as jsonpy
 import os
+import re
+from tqdm.asyncio import tqdm
+from urllib.parse import urlparse, unquote, urlencode
 from typing import Optional, Union, Dict, Any, List
 
 
@@ -18,7 +20,7 @@ class AsyncBrowser:
             apikey = os.environ.get(
                 "PHANTOMJSCLOUD.COM_APIKEY", "a-demo-key-with-low-quota-per-ip-address"
             )
-        userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Guangrei/2024.04.21 Chrome/124.0.0.0 Safari/537.36"
+        userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Guangrei/2025.02.13 Chrome/124.0.0.0 Safari/537.36"
         # settings https://phantomjscloud.com/docs/http-api/interfaces/ipagerequest.html
         self.pageRequest: Dict[str, Any] = {}
         self.endpoints: str = (
@@ -32,7 +34,7 @@ class AsyncBrowser:
         self.renderSettings: Dict[str, Any] = {}
         self.userAgent: str = userAgent
         self.cookies: List[str] = []
-        self._session: aiohttp.ClientSession = aiohttp.ClientSession()
+        self.session: aiohttp.ClientSession = aiohttp.ClientSession()
 
     async def _magicRender(self, type: str) -> None:
         if type == "html":
@@ -63,9 +65,7 @@ class AsyncBrowser:
         self.pageRequest["urlSettings"] = self.urlSettings
         self.pageRequest["renderSettings"] = self.renderSettings
         self.pageRequest["requestSettings"] = self.requestSettings
-        async with self._session.post(
-            self.endpoints, json=self.pageRequest
-        ) as response:
+        async with self.session.post(self.endpoints, json=self.pageRequest) as response:
             content = await response.read()
         self.response = content
         return response
@@ -206,5 +206,68 @@ class AsyncBrowser:
         else:
             return False
 
+    async def download(
+        self,
+        url: str,
+        folder: Optional[str] = None,
+        filename: Optional[str] = None,
+        overwrite: bool = False,
+        progress: bool = False,
+        **kwargs: Any,
+    ) -> str:
+        if not folder:
+            folder = os.getcwd()
+        ua = {"headers": {"User-Agent": self.userAgent}}
+        kwargs.update(ua)
+        async with self.session.get(url, **kwargs) as response:
+            if not filename:
+                content_disposition = response.headers.get("content-disposition")
+                if content_disposition:
+                    match = re.search(
+                        r'filename\*?=["\']?(?:UTF-8\'\')?([^"\']+)',
+                        content_disposition,
+                        re.IGNORECASE,
+                    )
+                    filename = unquote(match.group(1)) if match else None
+                else:
+                    filename = None
+
+                if not filename:
+                    filename = os.path.basename(urlparse(url).path) or "downloaded_file"
+            if not overwrite:
+                counter = 1
+                parts = filename.split(".")
+                if len(parts) > 2 and parts[-2].isalnum():
+                    name = ".".join(parts[:-2])
+                    ext = "." + ".".join(parts[-2:])
+                else:
+                    name = ".".join(parts[:-1])
+                    ext = "." + parts[-1]
+                name = re.sub(r"\(\d+\)$", "", name)
+                filename = f"{name}{ext}"
+                while os.path.exists(os.path.join(folder, filename)):
+                    filename = f"{name}({counter}){ext}"
+                    counter += 1
+
+            filepath = os.path.join(folder, filename)
+            total_size = int(response.headers.get("content-length", 0))
+            chunk_size = 1024  # 1 KB
+            if progress:
+                progress_bar = tqdm(
+                    total=total_size,
+                    unit="B",
+                    unit_scale=True,
+                    desc=filename,
+                )
+
+            async with aiofiles.open(filepath, "wb") as file:
+                async for chunk in response.content.iter_chunked(chunk_size):
+                    await file.write(chunk)
+                    if progress:
+                        progress_bar.update(len(chunk))
+            if progress:
+                progress_bar.close()
+        return filepath
+
     async def close(self) -> None:
-        await self._session.close()
+        await self.session.close()
