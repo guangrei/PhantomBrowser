@@ -1,12 +1,11 @@
 # -*-coding:utf8;-*-
-from urllib.parse import urlencode
 import requests
 import json as jsonpy
 import os
 import re
 import multiprocessing
 from tqdm import tqdm
-from urllib.parse import urlparse, unquote
+from urllib.parse import urlparse, unquote, urlencode
 from typing import Optional, Union, Dict, Any, List
 
 
