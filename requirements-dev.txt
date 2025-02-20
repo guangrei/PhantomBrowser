@@ -8,3 +8,6 @@ aiohttp
 twine
 setuptools
 types-setuptools
+tqdm
+types-tqdm
+
