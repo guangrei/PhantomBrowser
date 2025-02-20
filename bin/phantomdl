@@ -14,4 +14,4 @@ if __name__ == "__main__":
             print(f"ERROR: {e}")
             exit(1)
     else:
-        print(f"USAGE: {args[0]} URLS")
+        print(f"USAGE: {args[0]} <URLS>")
